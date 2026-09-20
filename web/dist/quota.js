@@ -82,11 +82,14 @@ function accountRows(entry, { showSource } = {}) {
 
 /** windowRows turns one reading into gauge rows, in the provider's own terms.
  *
- *  `showSource` is false inside a group and true on the single-subscription
- *  branch, and it controls exactly one thing: whether a Codex window says
- *  "Codex" in its own name. lib/providers.js's windowName prefixes the limit's
- *  provider, which is right when the row stands alone and redundant three rows
- *  under a heading that already says Codex. */
+ *  `showSource` controls exactly one thing: whether a Codex window keeps
+ *  "Codex · " in its own name. lib/providers.js's windowName prefixes the
+ *  limit's provider, which a row needs when it stands alone and does not when
+ *  it sits under a heading that has just said it. So the caller passes whether
+ *  it drew a heading, rather than which branch it is — both branches draw one
+ *  now, and tying this to "am I the grouped branch" is how the single-
+ *  subscription view ended up printing "Codex · 7-day window" three lines under
+ *  the word "Codex". */
 function windowRows(v, { showSource } = {}) {
   const rows = [];
   if (v.windows) {
@@ -265,14 +268,13 @@ function quotaCard(result, chips, accounts) {
   }
 
   const source = limits.source || 'claude';
-  const rows = [...windowRows(limits, { showSource: true })];
+  const heading = hasQuotaWindow(source) ? groupHeading(source, 1) : null;
+  const rows = [...windowRows(limits, { showSource: !heading })];
   for (const s of limits.scoped || []) {
     if (!s.model && !s.surface) continue;
     rows.push(C.gauge(t('quota.scopedWeekly', { name: s.model || s.surface }), s));
   }
-  card.appendChild(el('div', { class: 'qgroup' },
-    hasQuotaWindow(source) ? groupHeading(source, 1) : null,
-    ...rows, ...extraNotes(limits)));
+  card.appendChild(el('div', { class: 'qgroup' }, heading, ...rows, ...extraNotes(limits)));
   card.append(...sharesBlock(limits));
   return card;
 }
