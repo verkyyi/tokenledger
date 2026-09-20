@@ -175,7 +175,11 @@ function worstLine(worst, shownSet, sourceOf) {
   return el('p', { class: 'hint' }, t('wall.closest', {
     label: worst.label,
     source: sourceLabel(quotaSourceOf(worst, sourceOf)),
-    pct: highest(worst.limits).toFixed(1),
+    // Whole percent, like the gauge below it (#129). This line quotes the very
+    // figure one of those rows prints, so the two have to round the same way --
+    // "at 94.2%" over a row reading "94%" reads as two different readings of
+    // the same window.
+    pct: Math.round(highest(worst.limits)),
   }));
 }
 
