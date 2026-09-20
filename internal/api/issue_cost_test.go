@@ -284,7 +284,23 @@ func TestRepoIssues_CostIsOptInAndGated(t *testing.T) {
 	if code := h.getCode(t, "/v1/repo/issues?repo=o/r&stale=1"); code != http.StatusOK {
 		t.Errorf("HTTP %d without cost=1 on a two-repo hub, want 200", code)
 	}
-	if code := h.getCode(t, "/v1/repo/issues?repo=o/r&stale=1&cost=1"); code != http.StatusConflict {
-		t.Errorf("HTTP %d with cost=1 on a two-repo hub, want 409", code)
+	// cost=1 degrades instead of refusing: the backlog is correct either way,
+	// and the reason travels with it rather than the field simply vanishing.
+	var degraded struct {
+		Issues []struct {
+			Number   int               `json:"number"`
+			Lifetime *store.SpendTotal `json:"lifetime"`
+		} `json:"issues"`
+		CostUnavailable string `json:"cost_unavailable"`
+	}
+	h.getJSON(t, "/v1/repo/issues?repo=o/r&stale=1&cost=1", &degraded)
+	if len(degraded.Issues) != 1 {
+		t.Fatalf("the backlog went missing with the money: %+v", degraded)
+	}
+	if degraded.Issues[0].Lifetime != nil {
+		t.Error("a lifetime figure was served on a hub where the numbers cannot be bound")
+	}
+	if !strings.Contains(degraded.CostUnavailable, "o/second") {
+		t.Errorf("cost_unavailable = %q; want the reason, naming what the hub holds", degraded.CostUnavailable)
 	}
 }

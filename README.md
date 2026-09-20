@@ -970,8 +970,42 @@ number nobody measured is worse than no answer, because a reader cannot tell it
 from a measured one.
 
 Read it back over `/v1/repos`, `/v1/repo/flow`, `/v1/repo/issues` — the
-dashboard's Progress band and the three MCP tools are two renderers over those
+dashboard's Progress band and the MCP tools are two renderers over those
 same rows, never two copies of them.
+
+### The issue axis — where the money landed, and what it could not say
+
+`/v1/repo/cost?repo=owner/name` (MCP: `repo_issue_cost`) is the join between
+the two halves: spend rows carry an issue number read off the branch name, repo
+rows carry the backlog, and this is the read that puts them side by side. Per
+issue it answers the window's tokens and cost, the issue's **lifetime** cost —
+every hour ever attributed to it, unbounded by the window, because a branch
+named `issue-57` is work on issue 57 whenever it happened — and the issue's own
+progress. `/v1/repo/issues?cost=1` puts the same lifetime figure beside a
+stalled issue.
+
+Two refusals travel with it, and both are the same stance the rest of this
+section takes.
+
+**The unattributed bucket is a row, never a rounding error.** The attribution
+rule is anchored — `issue-<N>` and nothing else — so work whose branch never
+said what it was for is honestly unattributed rather than guessed at. Measured
+over 420,237 real events that is **63.5%**, and the response therefore carries
+`attributed`, `unattributed` and `total` so a reader can check that the parts
+sum rather than trust that they do. A chart quoting only the attributed share
+is not slightly optimistic; it is wrong by a factor of three, in the flattering
+direction. `unattributed.branches` says which branches it was, so the bucket is
+explicable and not merely disclosed.
+
+**A spend row names a number and no repository.** `owner/name` appears nowhere
+on the spend side — the hub was never told which repository a `cwd` is — and
+every repository starts its issues at #1. So the binding holds only while the
+hub holds exactly the repository being asked about, and otherwise
+`/v1/repo/cost` answers `409`, the same refusal `/v1/repo/issues?stale=1`
+already gives for a missing scale. `?cost=1` instead degrades: the backlog is
+correct either way, so the rows go out unpriced with `cost_unavailable` saying
+why. The fix is upstream — the endpoint agent declaring the repository it is
+running in — and refusing is the pressure that gets it built.
 
 ## Growth facts — what the company earned while it ran
 

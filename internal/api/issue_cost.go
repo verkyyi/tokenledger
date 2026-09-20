@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/verkyyi/ccquota/internal/store"
@@ -229,22 +230,6 @@ func (s *Server) issueBinding(repo string) error {
 	return &issueBindingError{msg: issueBindingRefusal(repo, repos)}
 }
 
-// issueBindingHolds is issueBinding for a handler that has already parsed its
-// arguments and only needs the refusal written out.
-func (s *Server) issueBindingHolds(w http.ResponseWriter, repo string) bool {
-	err := s.issueBinding(repo)
-	if err == nil {
-		return true
-	}
-	var bind *issueBindingError
-	if errors.As(err, &bind) {
-		httpError(w, http.StatusConflict, err.Error())
-	} else {
-		httpError(w, http.StatusInternalServerError, err.Error())
-	}
-	return false
-}
-
 // issueBindingError is the §5 refusal, typed so a caller can tell it from a
 // storage failure: one is answerable by declaring the repository at the
 // source, the other is a bug.
@@ -270,9 +255,9 @@ func issueBindingRefusal(repo string, repos []store.Repo) string {
 			": spend rows carry an issue number and no repository, so the numbers cannot be bound to " + repo
 	default:
 		return fmt.Sprintf(
-			"the hub holds %d repositories (%v) and spend rows carry an issue number without one: "+
+			"the hub holds %d repositories (%s) and spend rows carry an issue number without one: "+
 				"cost per issue cannot be bound to %s until the repository is declared on the spend side",
-			len(repos), held, repo)
+			len(repos), strings.Join(held, ", "), repo)
 	}
 }
 

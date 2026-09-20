@@ -3,6 +3,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -216,21 +217,29 @@ func (s *Server) handleRepoIssues(w http.ResponseWriter, r *http.Request) {
 	// cost=1 puts each issue's lifetime spend beside it -- "this one has been
 	// open past p95, and here is what it has already burned".
 	//
-	// Opt-in rather than always, and gated: binding a spend row's issue NUMBER
-	// to this repository is sound only while the hub holds exactly this one
-	// repository (see issueBindingHolds). A caller that did not ask for money
-	// must not be refused for a binding it never relied on, which is why the
-	// gate sits inside the flag rather than at the top of the handler.
+	// Opt-in, and it DEGRADES rather than refusing. /v1/repo/cost answers 409
+	// when the issue numbers cannot be bound to this repository, because cost
+	// is the only thing it has to say. Here cost is an adornment on a backlog
+	// that is correct either way, and taking the whole stalled list down over
+	// a binding it never needed would hide progress data to protect a money
+	// column. So the rows go out unpriced and `cost_unavailable` says why, in
+	// the same words the 409 would have used -- stated out loud, never a
+	// silently missing field.
 	if q.Get("cost") == "1" {
-		if !s.issueBindingHolds(w, repo) {
-			return
-		}
-		priced, err := s.attachIssueCost(rows)
-		if err != nil {
+		switch err := s.issueBinding(repo); {
+		case err == nil:
+			priced, err := s.attachIssueCost(rows)
+			if err != nil {
+				httpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			out["issues"] = priced
+		case errors.As(err, new(*issueBindingError)):
+			out["cost_unavailable"] = err.Error()
+		default:
 			httpError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		out["issues"] = priced
 	}
 	writeJSON(w, http.StatusOK, out)
 }
