@@ -113,6 +113,8 @@ export const zhCN = {
   'billing.notional': '订阅',
   'billing.unknown': '未分类',
   'rows.notDeclared': '未声明',
+  // 只在这一行的用量全部来自 claude 时出现 —— 那时「空」只可能有一个原因。
+  'rows.notDeclaredClaude': 'Claude（该来源不声明上游）',
   'rows.foldedTail': '其余 {n} 个上游 · 各 ≤{max} 次请求，且无费用',
 
   /* ------------------------------------------------------- time formatting */
@@ -242,6 +244,15 @@ export const zhCN = {
 
   /* -------------------------------------------------------------- alerts */
   'alerts.title': '告警',
+  /* 顶栏那个铃铛的无障碍名与 title（#123）。可见的只有「数字 + 严重度词」，
+     位置有限；这一句补上它数的是什么。 */
+  'alerts.bell.label': '告警：{n} 条{severity}',
+  'alerts.bell.allMuted': '告警：{n} 条，全部已静音',
+  /* 三档严重度的词形。颜色不单独承载语义（styles.css:256），铃铛的颜色由
+     这个词加固。 */
+  'alerts.sev.critical': '严重',
+  'alerts.sev.warning': '警告',
+  'alerts.sev.info': '提示',
 
   /* --------------------------------------------------------------- fleet */
   'endpoints.title': '端点',

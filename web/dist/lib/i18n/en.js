@@ -117,6 +117,9 @@ export const en = {
   'billing.notional': 'subscription',
   'billing.unknown': 'unclassified',
   'rows.notDeclared': 'not declared',
+  // Only when every figure in the row came from claude: then "blank" has one
+  // possible cause, and the row can name it.
+  'rows.notDeclaredClaude': 'Claude (declares no upstream)',
   'rows.foldedTail': 'other {n} providers · ≤{max} requests, no charge',
 
   /* ------------------------------------------------------- time formatting */
@@ -255,6 +258,15 @@ export const en = {
 
   /* -------------------------------------------------------------- alerts */
   'alerts.title': 'Alerts',
+  /* The bar bell's accessible name and title (#123). All that fits on screen
+     is the count and the severity word; this says what is being counted. */
+  'alerts.bell.label': 'Alerts: {n} {severity}',
+  'alerts.bell.allMuted': 'Alerts: {n}, all muted',
+  /* The three severities, as words. Colour never carries the meaning on its
+     own (styles.css:256) — the bell's colour is reinforced by one of these. */
+  'alerts.sev.critical': 'critical',
+  'alerts.sev.warning': 'warning',
+  'alerts.sev.info': 'info',
 
   /* --------------------------------------------------------------- fleet */
   'endpoints.title': 'Endpoints',
