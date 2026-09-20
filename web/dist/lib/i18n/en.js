@@ -180,6 +180,7 @@ export const en = {
   'wall.chipsIgnored': 'Quota follows the selected source and account. Project and machine filters apply to usage details; gauges cover the whole subscription.',
   'wall.exact': 'Exact, account-wide, and already covering every device on the subscription.',
   'wall.noReading': 'No reading available.',
+  'wall.meteredOnly': 'Every account in view is billed per call — there is no quota window to be near. Their spend is on the usage cards below.',
   'wall.noReadingSeeNotice': 'No reading available — see the notice above.',
   'wall.closest': 'Closest to its limit: {label} at {pct}%.',
   'wall.whose': 'Whose 5-hour window is it',
@@ -356,6 +357,13 @@ export const en = {
   'findings.title': 'Findings',
   'findings.empty': 'Nothing unusual in this period.',
   'findings.apply': 'apply →',
+  // A finding's attribution. Only printed when the hub actually knows it —
+  // absent is the normal case for a finding about a model or a whole period,
+  // and these lines never appear rather than saying "unknown". {user} is an OS
+  // login and {team} the operator's own allocation; neither is translated.
+  'findings.owner.both': 'who to ask: {user} · team {team}',
+  'findings.owner.user': 'who to ask: {user}',
+  'findings.owner.team': 'who to ask: team {team}',
 
   /* ---------------------------------------------------------- breakdowns */
   'breakdown.title': 'By {dim}',
