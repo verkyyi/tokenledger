@@ -103,6 +103,28 @@ func TestAssets_DashboardIsEmbedded(t *testing.T) {
 			t.Errorf("index.html shell is missing %q -- the section nav has nothing to anchor to", want)
 		}
 	}
+	// The token badge's mount point is in the BAR, not in <main> (#96).
+	//
+	// Not a styling preference: --navh is the sticky bar measured, and it is
+	// both the scroll-margin every anchor lands against and the line the scroll
+	// spy picks the current section from. The badge's first frame arrives about
+	// one round trip after the page does (now.js's startLive), so where it
+	// mounts decides whether a late arrival can move that number after the spy
+	// has used it. In the bar the badge is sized to fit inside the row's
+	// existing height and scope.js observes the bar; back in <main> both of
+	// those become dead weight, and the two-line move that put it there reads
+	// like a revert of a cosmetic change.
+	src := string(b)
+	pulseAt := strings.Index(src, `id="pulse"`)
+	headEnd := strings.Index(src, `</header>`)
+	switch {
+	case pulseAt < 0:
+		t.Error(`index.html has no id="pulse" -- now.js has nowhere to mount the lifetime token badge`)
+	case headEnd < 0:
+		t.Error(`index.html has no </header> -- the sticky bar is the shell's one static element`)
+	case pulseAt > headEnd:
+		t.Error(`id="pulse" is outside <header id="scope"> -- #96 put the token badge in the sticky bar, where its late first frame cannot move --navh after the scroll spy has measured against it`)
+	}
 	// The dead `<footer id="footer">` #54 removed. No module ever wrote it, so
 	// it rendered as nothing on every page view; re-adding an empty one is
 	// re-adding a placeholder that outlives whoever remembers why.

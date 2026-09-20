@@ -204,8 +204,10 @@ export function syncNav() {
 /* ------------------------------------------------------------- scroll spy */
 
 let spyQueued = false;
-/** Held for lifetime, not for use — see where it is assigned. */
-let pageObserver = null;
+/** Held for lifetime, not for use — see where it is assigned. One observer,
+ *  two targets: the page (which moves the bands) and the bar (which moves the
+ *  line they are measured against). */
+let layoutObserver = null;
 
 /** spy marks the entry the reader is currently under. Reads layout and writes
  *  one attribute per button; the pick itself is lib/nav.js's pickActive, kept
@@ -293,8 +295,33 @@ export function renderNav(root, { onView: onViewCb } = {}) {
     // spec's collection rules, and the failure mode if one is collected is
     // silent — the nav just stops following, which is the bug above returning.
     if (typeof ResizeObserver === 'function') {
-      pageObserver = new ResizeObserver(queueSpy);
-      pageObserver.observe($('#page'));
+      layoutObserver = new ResizeObserver(queueSpy);
+      layoutObserver.observe($('#page'));
+      // ...and the BAR ITSELF, because the thing the spy measures AGAINST can
+      // move too, and when it does every answer above is computed from a stale
+      // number.
+      //
+      // #96 put the lifetime token badge in this bar, and its first frame lands
+      // about one round trip after the page does: the stream that feeds it is
+      // opened only once the first screen's fetches have settled (now.js's
+      // startLive). --navh is published by navHeight() at spy time, so a bar
+      // that grows after the last spy leaves every band's scroll-margin and the
+      // spy's own line short by the difference — anchors land tucked under the
+      // bar, which is the bug #54 fixed for the page, now happening to the bar.
+      //
+      // The badge is sized so that it does not change this bar's height at all
+      // (styles.css's `.scope #pulse` carries the measurements), which is the
+      // real fix and covers every width this was written against. This is the
+      // backstop for what sizing cannot promise: `.row1` wraps, and a wrap is a
+      // height change — one a longer locale, a larger default font or a width
+      // nobody tried can still produce. Observing the bar makes the correction
+      // general rather than specific to the badge: whatever changes the bar's
+      // height, the offset is re-measured and re-published.
+      //
+      // No feedback loop: what the callback writes is --navh, and --navh is
+      // read only by the scroll-margin of things below this bar (see
+      // styles.css) — never by the bar's own box.
+      layoutObserver.observe(root);
     }
     root.dataset.bound = '1';
   }
