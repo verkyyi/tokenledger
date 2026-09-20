@@ -84,6 +84,9 @@ export const en = {
   /* --------------------------------------------------------- spend (money) */
   'spend.title': 'What this actually cost',
   'spend.incomplete': 'Incomplete — {missing}',
+  'spend.incompleteShort': 'incomplete',
+  'spend.chip.verb': 'spent',
+  'spend.chip.range': 'this range',
   'spend.unpriced': '{n} request(s) have no price data, so every figure here is a lower bound.',
   // The one door into the folded explanation. It names what is behind it, so
   // opening it is a decision rather than a guess — "Details" would not be.
@@ -135,6 +138,11 @@ export const en = {
   'dur.minutes.other': '{n} minutes',
   'dur.hours.one': '{n} hour',
   'dur.hours.other': '{n} hours',
+  'reset.unknown': 'reset time unknown',
+  'reset.now': 'resetting now',
+  'reset.minutes': 'resets in {m}m',
+  'reset.hours': 'resets in {h}h {m}m',
+  'reset.days': 'resets in {d}d {h}h',
   'day.0': 'Sun',
   'day.1': 'Mon',
   'day.2': 'Tue',
@@ -156,8 +164,6 @@ export const en = {
   'gauge.high': 'high',
   'gauge.moderate': 'moderate',
   'gauge.healthy': 'healthy',
-  'gauge.fillsAround': 'full around {time} at {rate}%/h',
-  'gauge.burning': 'burning {rate}%/h, resets first',
   'chart.tip.tokens': '{tokens} tokens',
   'chart.tip.tokensTurns': '{tokens} tokens · {turns} turns',
   'chart.tip.turnsCost': '{turns} turns · {cost}',

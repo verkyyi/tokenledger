@@ -233,9 +233,86 @@ button[aria-pressed="true"] { background: var(--ink); color: var(--surface); bor
    column: the windows are the readings, and a name in column one would push
    every number right by however long the longest email is. */
 .qacct { grid-column: 1 / -1; margin-top: 9px; font-size: 12px; font-weight: 600; color: var(--ink-2); overflow-wrap: anywhere; }
-.qgroup-head + .qacct { margin-top: 4px; }
+/* The first subscription sits closer to the heading than the ones after it. The
+   `.qentry` form is not a second case: #129 wrapped each subscription, and a
+   `display: contents` wrapper is invisible to LAYOUT but not to a SELECTOR, so
+   without this half the rule silently stopped matching and the phone card grew
+   5px. */
+.qgroup-head + .qacct, .qgroup-head + .qentry > .qacct { margin-top: 4px; }
 .qempty, .qnote { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-3); margin: 0; }
 .quota-card .qsub { margin-top: 22px; }
+
+/* One subscription, as a unit (#129). `display: contents` means it is NOT a box
+   here — its cells join `.qgroup` exactly as they did when quota.js returned
+   them loose, so every rule above and the phone layout below are untouched. It
+   exists so the wide layout has something to move; see the two-lane block. */
+.qentry { display: contents; }
+
+/* ---- two lanes, once there is room for two (#129) ----
+
+   The card's last extravagance was that it flowed down ONE column at every
+   width. Ten windows were ten stacked rows — measured here at 538px of group
+   for five subscriptions — while the bar column, the only flexible one, ate the
+   slack and rendered 670px long. Nothing reads a 670px bar more accurately than
+   a 120px one; the width was being spent on nothing while the reader scrolled.
+
+   So above 1180px the group is TWO five-column lanes and a subscription flows
+   into whichever one is next: 5 blocks over 3 rows instead of 5, measured at
+   1440px as 538px -> 335px of group (-37.7%), 631px -> 428px of whole card
+   (-32.2%).
+
+   Why a hand-written `repeat(2, ...)` and not `.tiles`'s `repeat(auto-fit,
+   minmax(140px, 1fr))`, which is this file's other multi-column grid: auto-fit
+   cannot express this. An auto-repeat track list may not contain intrinsic or
+   flexible sizes, and four of these five columns are `auto` and the fifth is
+   `1fr` — the sizing that makes the five columns agree across subscriptions in
+   the first place. `.tiles` can auto-fit because a tile is one opaque 140px
+   box. A gauge is five cells that must line up with the gauge above it.
+
+   Which is also why the lane is `subgrid` rather than a nested grid of its own.
+   A nested grid would size its five columns from its own block's content, so
+   two subscriptions stacked in the same lane would set different widths and the
+   percent column would wander — the exact failure the `display: contents` note
+   above describes. Subgrid puts every block on the lane's tracks, so a lane
+   reads as one column of numbers from top to bottom. Verified: in a five-
+   subscription card the `.pct` cells of every block in lane one share a right
+   edge, and so do lane two's.
+
+   1180px is `.wrap`'s own max-width, which is the whole reason it is the
+   breakpoint rather than a number picked to look responsive. The group is the
+   viewport less the wrap's 40px and the card's 36px, so it grows with the
+   window until the wrap stops and then stays at 1104px forever — and switching
+   exactly there means these ten columns only ever run at the ONE width measured
+   above. Lower would be a range whose wide end is fine and whose narrow end
+   overflows sideways: at 1140px the group is 1064px, and this needs 54 more.
+
+   Two things buy the room it needs. The bar's floor drops to 60px, because
+   when something has to give, a shorter bar is a smaller loss than a forecast
+   pushed off the card — it is a floor, not a width, and at 1440px the bars
+   still measure 101px. And the lanes are separated by 20px of padding on the
+   forecast cell instead of a wider `column-gap`: a gap applies to all nine
+   gutters, so a 30px lane separation would also widen the eight gutters INSIDE
+   the lanes, spending 160px to separate two things. The padding costs 40px and
+   is symmetric — lane one's trailing space separates the lanes, lane two's
+   falls in the card's own right padding. Against the worst content this branch
+   can be handed (a 62-character account name, every window "100.0%" and
+   "critical", a three-digit forecast on every row) the bars still come out at
+   89px, clear of the floor.
+
+   Blocks are placed by ordinary auto-flow in DOM order, row-major: each lands
+   in the first row where a lane is free. Tab order is untouched and nothing
+   here uses `order`. */
+@media (min-width: 1180px) {
+  .qgroup { grid-template-columns: repeat(2, auto auto auto minmax(60px, 1fr) auto); gap: 14px 10px; }
+  .qentry {
+    display: grid; grid-column: span 5; grid-template-columns: subgrid;
+    align-items: baseline; gap: 5px 10px;
+  }
+  .gauge .meta { padding-right: 20px; }
+  /* The block supplies the separation between subscriptions now (the grid's
+     14px row gap), so the name stops adding its own on top of it. */
+  .qentry > .qacct, .qgroup-head + .qentry > .qacct { margin-top: 0; }
+}
 
 /* Under ~640px the five columns cannot hold: an email, a 26px number and a
    forecast do not share a phone's width. The row becomes two lines — the
@@ -639,6 +716,73 @@ footer { margin-top: 26px; color: var(--ink-3); font-size: 12px; line-height: 1.
    The only thing that had to be re-scoped is the dot, and upward rather than
    down: `summary .dot` above is the pill's own, in em so it tracks the pill's
    one font-size knob; the rows' 9px dots are untouched. */
+
+/* The ledger chip's slot in the bar (#128).
+
+   SAME HEIGHT RULE, SAME TWO STATES, same recipe as the bell above: one
+   font-size knob with everything inside it in em, so the closed pill fits
+   inside the height the row already has, and a panel taken out of flow so
+   opening it cannot move --navh either. The measurements are at the bottom of
+   this block.
+
+   Sized and shaped as the bell's twin on purpose. These are the bar's three
+   readouts -- alerts, money, tokens -- and a reader should see them as one set
+   rather than as three widgets that happen to share a row. */
+.scope #ledgerchip { display: flex; align-items: center; min-width: 0; font-size: 12.5px; }
+/* Empty means empty -- no pill, and no 14px flex gap left where one would have
+   been. One selector, not #pulse's two: app.js mounts the <details> itself
+   here rather than a persistent wrapper it later empties. */
+.scope #ledgerchip:empty { display: none; }
+
+/* `> details >` and not a bare descendant: there is a SECOND <summary> inside
+   this chip -- the working fold's, one level down in the panel -- and a pill
+   border, a pill background and `white-space: nowrap` reaching it would draw
+   the fold's door as a second, broken-looking pill. The bell has no nested
+   fold, which is why its block above can be written loosely and this one
+   cannot. */
+.scope #ledgerchip > details > summary {
+  display: inline-flex; align-items: baseline; gap: .45em; cursor: pointer;
+  padding: .26em .7em; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface); list-style: none; white-space: nowrap;
+}
+.scope #ledgerchip > details > summary::-webkit-details-marker { display: none; }
+.scope #ledgerchip > details > summary:hover { background: var(--grid); }
+.scope #ledgerchip > details > summary:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+/* The period, and the verb in front of it. Both quieter than the figure -- the
+   number is what a reader takes in at a glance -- and they are two nodes
+   because only one of them is droppable.
+   `.per` is never dropped, at any width: a bare money figure in a bar that is
+   also printing a LIFETIME token counter is a figure that will be read as the
+   lifetime bill, which is the one misreading this chip exists to prevent.
+   `.lbl` is the verb, and a money figure in the bar of a page called
+   TokenLedger is not ambiguous about whether it was spent -- so that is the
+   half a phone gives up, below. */
+.scope #ledgerchip .lbl, .scope #ledgerchip .per { color: var(--ink-3); }
+.scope #ledgerchip .n { font-variant-numeric: tabular-nums; }
+/* "This total is LOW", in the warn colour AND in the word beside it. Same rule
+   as the bell's severity word and for the same reason (styles.css:256): at
+   12.5px a tinted glyph is the whole message, and to a reader who cannot
+   separate the warn hue from the ink it is no message at all. The `≥` on the
+   figure says it a third way, in a mark that needs no colour sense whatsoever. */
+.scope #ledgerchip .w { color: var(--serious); font-size: .92em; }
+
+/* The open panel. Absolutely positioned against .scope -- the BAR, not the
+   pill -- so it hangs from the bar's bottom edge even at the widths where
+   .row1 wraps and the pill is no longer on the last line. Same corner, same
+   width and the same z-20-by-containment as the bell's panel above: the two
+   are an exclusive <details name="barfold"> group, so only one of them is ever
+   open and they cannot stack. */
+.scope #ledgerchip .ledger-panel {
+  position: absolute; top: 100%; right: 20px;
+  /* 100% is .scope, this panel's containing block -- not 100vw, which includes
+     the scrollbar and so hangs the panel 3px off the left edge of a phone. */
+  width: min(400px, calc(100% - 24px));
+  max-height: min(60vh, 30em); overflow-y: auto;
+  padding: 10px 14px; font-size: 13px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-top: 0; border-radius: 0 0 12px 12px; box-shadow: var(--shadow);
+}
+.scope #ledgerchip .ledger-panel > .hint:first-child { margin-top: 0; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px 2px 10px; border-radius: 999px; background: var(--s1); color: #fff; font-size: 12.5px; }
 .chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
 .chip.clear { background: var(--ink-3); }
@@ -759,6 +903,28 @@ main[aria-busy="true"] .card { opacity: .6; transition: opacity .2s; }
    three roster tables; two of them are columns of the third now, and one card
    is not a group — #ops is already the fold it sits in. */
 /* mobile */
+/* The token badge yields the bar to the money, from 900px down (#128).
+   #96 hid #pulse on phones only, with the wordmark, and #123 then measured the
+   721-810px band as the tight one: the wordmark and the badge are both back up
+   there, and the bar had 26px of slack at 810px and none at all at 721px.
+   Adding a 207px ledger chip spends slack that was not there -- MEASURED, the
+   bar wrapped and --navh went 65px -> 110px at 721px.
+
+   Something in that band has to give, and #96's own argument says which. The
+   badge is AMBIENT: it is a status light, and every number it summarises is in
+   the cards below. The ledger figure is the opposite, and #128 is what made it
+   so -- the card that used to hold it does not render any more, so the bar is
+   the only place the total appears at all. A bar that cannot hold both keeps
+   the figure that has nowhere else to be.
+
+   900 rather than the 784px where it strictly starts fitting: at 784 the nav
+   would be shrunk to nothing to buy it, and the nav is what this bar is for.
+   MEASURED with the badge hidden: the nav gets 144px at 721px and 248px at
+   900px; with it back at 901px, 117px. */
+@media (max-width: 900px) {
+  .scope #pulse { display: none; }
+}
+
 @media (max-width: 720px) {
   /* The wordmark goes, and the nav takes the room it freed: on a phone the
      4,459px page is nearer 9,000, so the nav is the one thing in this bar
@@ -769,15 +935,9 @@ main[aria-busy="true"] .card { opacity: .6; transition: opacity .2s; }
      that `auto` basis was the half that did not work (see that rule's note). A
      copy down here would have re-broken it by winning the cascade. */
   .scope .row1 { padding: 8px 12px; gap: 6px; } .scope h1 { display: none; }
-  /* ...and the token badge goes with the wordmark (#96), for the same reason
-     and by the same argument. Even stripped of its caption the pill is ~200px
-     of monospace odometer wheels, which on a 320px phone is the nav's width;
-     the nav is the one thing in this bar worth it. Nothing is lost that is not
-     still on the page: the badge is ambient, not a figure anyone reads off, and
-     every number it summarises is in the cards below. Hiding it here also makes
-     the phone bar's height trivially invariant -- there is no badge to arrive
-     late and no wrap for it to cause. */
-  .scope #pulse { display: none; }
+  /* The token badge's hide rule used to be here, with the wordmark. #128 moved
+     it UP to its own 900px query below, because the band it was needed in got
+     wider -- see that block. Nothing about the phone case changed. */
   /* The bell STAYS, and the contrast with the line above is the point. The
      badge is ambient — every number it summarises is in the cards below, so a
      phone loses nothing by dropping it. An alert is the opposite: it is the one
@@ -789,6 +949,27 @@ main[aria-busy="true"] .card { opacity: .6; transition: opacity .2s; }
      phone bar's height stays as invariant as the note above claims.
      Only the panel's inset moves, to follow .row1's 12px padding. */
   .scope #alertbell .bell-panel { right: 12px; }
+  /* The ledger chip stays too, and by the SAME argument rather than the badge's
+     (#128). The badge is ambient; the money is not, and since the card is gone
+     the bar is the only place on a phone the total appears at all. Dropping it
+     here would not be saving width, it would be deciding phone readers do not
+     get to see what this deployment spent.
+     It is shorter than the row's tallest remaining child, so the phone bar's
+     height stays as invariant as the note above claims -- measured below.
+
+     What it gives up instead is two words. MEASURED at 375px: the full chip is
+     207px against a row with 351px to spend, and the bar wrapped (--navh 58 ->
+     95) -- the nav, the bell, the two toggles and this do not fit. The verb and
+     the incomplete WORD come off, leaving the period and the figure at ~103px,
+     and the row fits again with the nav still scrollable (76px at 375, 21px at
+     320, which is the width this bar has always been worst at).
+     Neither cut is a silent one: `≥` stays on the figure and is a MARK, not a
+     colour, so the "this total is low" claim survives the word being dropped
+     and survives it for a reader who cannot see the warn hue either. The full
+     sentence is in the panel, and both are in the summary's title/aria-label,
+     so nothing here is unreachable -- only unprinted. */
+  .scope #ledgerchip .lbl, .scope #ledgerchip .w { display: none; }
+  .scope #ledgerchip .ledger-panel { right: 12px; }
   .secnav button { padding: 6px 8px; font-size: 12.5px; }
   .kpis { grid-template-columns: repeat(2, 1fr); }
   .detail .kpis { grid-template-columns: repeat(2, 1fr); }
@@ -855,38 +1036,36 @@ main[aria-busy="true"] .card { opacity: .6; transition: opacity .2s; }
 }
 
 /* ------------------------------------------------- the spend headline
-   The page's first figure is the one somebody was actually charged, so it is
-   the only number given display size. Its terms sit directly under it in
-   muted text: the total is the answer, the terms are the working. */
-#real-spend .figure {
-  font-size: 2.6rem; font-weight: 650; line-height: 1.1;
-  margin: 6px 0 2px; letter-spacing: -.02em;
-  font-variant-numeric: tabular-nums;
-}
-#real-spend .terms {
-  color: var(--ink-2); margin: 0 0 12px;
-  font-variant-numeric: tabular-nums;
-}
-#real-spend .hint.warn { color: var(--serious); }
+   There is no display-size figure here any more (#128). The headline is a chip
+   in the sticky bar -- see `.scope #ledgerchip` above, which carries the whole
+   argument and the --navh measurements -- and #real-spend is what is left when
+   /v1/summary FAILS, which is a card with a heading and one sentence and needs
+   no rules of its own.
 
-/* The working, folded (issue #94). The card exists to show one figure, and the
-   sentences that explain it outnumbered it five to one; they are all still
-   here, one click away. The summary is deliberately the quietest thing in the
-   card -- it is a door, not a heading, and the one loud thing here is still the
-   number. */
-#real-spend details.working { margin: 0 0 4px; }
-#real-spend details.working > summary {
+   What did survive the move is the inside of the chip's panel, because it is
+   the same content the card used to hold: the terms line, the incomplete
+   sentence in its warn colour, and the working fold (#94). Those rules are now
+   scoped to the panel, one copy, moved rather than duplicated -- a second copy
+   of them under #real-spend would be styling a card that no longer renders
+   them. */
+.scope #ledgerchip .ledger-panel .terms {
+  color: var(--ink-2); margin: 0 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+.scope #ledgerchip .ledger-panel .hint.warn { color: var(--serious); }
+
+/* The working, folded (issue #94). The headline exists to show one figure, and
+   the sentences that explain it outnumbered it five to one; they are all still
+   here, one click further away than they were. The summary is deliberately the
+   quietest thing in the panel -- it is a door, not a heading. */
+.scope #ledgerchip details.working { margin: 0; }
+.scope #ledgerchip details.working > summary {
   color: var(--ink-3); font-size: 12px; padding: 2px 0;
   cursor: pointer; list-style: revert; user-select: none;
 }
-#real-spend details.working > summary:hover { color: var(--ink-2); }
-#real-spend details.working > .hint:first-of-type { margin-top: 8px; }
-#real-spend details.working > .hint:last-child { margin-bottom: 0; }
-
-@media (max-width: 480px) {
-  #real-spend .figure { font-size: 2rem; }
-  #real-spend .terms { font-size: .9em; }
-}
+.scope #ledgerchip details.working > summary:hover { color: var(--ink-2); }
+.scope #ledgerchip details.working > .hint:first-of-type { margin-top: 8px; }
+.scope #ledgerchip details.working > .hint:last-child { margin-bottom: 0; }
 
 /* The three provenance tables inside the KPI card (rate basis, subscription
    spend, unpriced reasons) are bare <table>s wide enough to push the page
@@ -974,8 +1153,11 @@ details.unpriced-reasons > summary + * { margin-top: 8px; }
 .band-title { font-weight: 600; font-size: 14px; letter-spacing: .02em; color: var(--ink-2); }
 .band-note { color: var(--ink-3); font-size: 12.5px; }
 
-/* Tier 1 — the answer. More room, and the only tier whose figure is set at
-   display size (see #real-spend .figure). */
+/* Tier 1 — the answer, and the tier with the most room. The display-size figure
+   this note used to point at is gone (#128 moved it into the bar), so #spend's
+   share of this rule now dresses one thing: the card that says /v1/summary
+   failed. It keeps the padding because a failure should look like the card the
+   reader expected here, not like a narrower afterthought. */
 #spend > .card,
 #consumption > .card { padding: 20px 22px; }
 

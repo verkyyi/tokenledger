@@ -82,6 +82,16 @@ export const zhCN = {
   /* --------------------------------------------------------- spend (money) */
   'spend.title': '这段时间真正花了多少',
   'spend.incomplete': '不完整 —— {missing}',
+  // The bar's word for the line above. The sentence itself is written per
+  // unpriced plan by the server and runs to well over a hundred characters;
+  // what fits beside the figure in a sticky bar is the claim, not the list.
+  'spend.incompleteShort': '不完整',
+  // The chip's label, and its whole job is to stop a bare money figure in the
+  // top bar being read as a lifetime bill. This figure is the SELECTED range's
+  // (拍板第 2 条); the only lifetime total on this page is the token counter
+  // two slots along in the same bar.
+  'spend.chip.verb': '实付',
+  'spend.chip.range': '本区间',
   'spend.unpriced': '有 {n} 次请求没有价格数据，所以这里每个数字都是下界。',
   'spend.working': '这个数是怎么算的',
   'spendTerm.subscription': '订阅',
@@ -129,6 +139,11 @@ export const zhCN = {
   'dur.minutes.other': '{n} 分钟',
   'dur.hours.one': '{n} 小时',
   'dur.hours.other': '{n} 小时',
+  'reset.unknown': '重置时间未知',
+  'reset.now': '正在重置',
+  'reset.minutes': '{m} 分钟后重置',
+  'reset.hours': '{h} 小时 {m} 分钟后重置',
+  'reset.days': '{d} 天 {h} 小时后重置',
   'day.0': '周日',
   'day.1': '周一',
   'day.2': '周二',
@@ -150,8 +165,6 @@ export const zhCN = {
   'gauge.high': '偏高',
   'gauge.moderate': '中等',
   'gauge.healthy': '健康',
-  'gauge.fillsAround': '按 {rate}%/小时，约 {time} 用满',
-  'gauge.burning': '消耗 {rate}%/小时，会先重置',
   'chart.tip.tokens': '{tokens} token',
   'chart.tip.tokensTurns': '{tokens} token · {turns} 轮次',
   'chart.tip.turnsCost': '{turns} 轮次 · {cost}',
