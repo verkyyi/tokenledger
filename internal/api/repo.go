@@ -211,9 +211,28 @@ func (s *Server) handleRepoIssues(w http.ResponseWriter, r *http.Request) {
 	if rows == nil {
 		rows = []store.RepoIssueRow{}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"repo": repo, "stale": stale, "issues": rows, "scale": scale,
-	})
+	out := map[string]any{"repo": repo, "stale": stale, "issues": rows, "scale": scale}
+
+	// cost=1 puts each issue's lifetime spend beside it -- "this one has been
+	// open past p95, and here is what it has already burned".
+	//
+	// Opt-in rather than always, and gated: binding a spend row's issue NUMBER
+	// to this repository is sound only while the hub holds exactly this one
+	// repository (see issueBindingHolds). A caller that did not ask for money
+	// must not be refused for a binding it never relied on, which is why the
+	// gate sits inside the flag rather than at the top of the handler.
+	if q.Get("cost") == "1" {
+		if !s.issueBindingHolds(w, repo) {
+			return
+		}
+		priced, err := s.attachIssueCost(rows)
+		if err != nil {
+			httpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		out["issues"] = priced
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // repoScope reads the repo name and the day range every repo endpoint shares.

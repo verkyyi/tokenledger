@@ -785,14 +785,14 @@ Point any MCP client at `https://your-hub/mcp` with the viewer token as a bearer
 }}}
 ```
 
-Thirty-two read-only tools: `list_accounts`, `get_limits`, `get_limits_history`,
+Thirty-three read-only tools: `list_accounts`, `get_limits`, `get_limits_history`,
 `list_endpoints`, `usage_by_source`,
 `usage_by_provider`, `usage_by_account`, `list_account_switches`, `list_endpoint_accounts`,
 `usage_by_endpoint`, `usage_by_user`, `usage_by_project`, `usage_by_session`,
 `usage_by_model`, `usage_by_team`, `usage_by_branch`, `usage_by_effort`, `usage_by_entrypoint`,
 `usage_history`, `usage_summary`, `list_sessions`, `get_session`, `get_user`,
 `get_findings`, `get_collectors`, `get_account_usage`, `get_live`, `quota_history`, `get_fx`,
-`list_repos`, `repo_progress`, `list_repo_issues`.
+`list_repos`, `repo_progress`, `list_repo_issues`, `repo_issue_cost`.
 
 **Every axis the HTTP API can group by, MCP can group by too.** They went out of
 step once: `team`, `branch`, `model`, `effort` and `entrypoint` were reachable as
