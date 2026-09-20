@@ -642,9 +642,41 @@ function efficiencyCard(summaryResult, breakdown2Result, state) {
 
 /* -------------------------------------------------------------- card 7: when */
 
+// The shortest selection this card has anything of its own to say about, and
+// it is ONE constant on purpose: whenCard reads it to decide what to draw and
+// renderReview reads it to decide whether to ask for the data at all. Two
+// copies of the threshold is how a card ends up drawn from a response nobody
+// sent, or a response sent for a card that will not draw it.
+//
+// 48 hours because this card's reading is PERIODIC -- hour × weekday, every
+// Tuesday 15:00 folded onto one another -- and a fold needs more than one
+// reading per cell to be a fold at all. Under two days most cells hold one
+// observation or none, and the grid is just the selection's own hours laid out
+// in a rectangle.
+const WHEN_MIN_MS = 48 * 3600e3;
+
 function whenCard(result, ctx) {
-  if (result.status === 'rejected') return errCard(t('when.title'), result);
   const { sel } = ctx;
+  // Issue #102: below the threshold this card used to draw hourly BARS, and
+  // that is the timeline's answer, one band up -- the same buckets of the same
+  // measure in the same chronological order, which on `span=7d` is literally
+  // the same 1h granularity. The card's own hint has always promised hour ×
+  // weekday, so the bars did not even match what it said it was showing.
+  //
+  // So a short selection gets no chart: it gets the sentence that names the
+  // card that does answer it. One number, one place on the page (issue #93).
+  //
+  // Read from the SELECTION, not from `result`, and that is what lets the two
+  // agree: renderReview stops sending the hourly request under this threshold,
+  // so `result` is usually a SKIPPED hole here -- but seq.js's replay() can
+  // also hand back a fulfilled long-window result the moment the brush
+  // narrows, before any request goes out. The selection is the one fact both
+  // the fetch plan and this card are derived from.
+  if (sel.to - sel.from < WHEN_MIN_MS) {
+    return el('div', { class: 'card' }, el('h2', {}, t('when.title')),
+      el('div', { class: 'empty' }, t('when.tooShort')));
+  }
+  if (result.status === 'rejected') return errCard(t('when.title'), result);
   const data = result.value;
   const series = data.series || [];
 
@@ -655,13 +687,9 @@ function whenCard(result, ctx) {
     return card;
   }
 
-  let chart;
-  if (sel.to - sel.from < 48 * 3600e3) {
-    chart = C.bars(series, 'hour');
-  } else {
-    const { grid, events } = foldHourly(series);
-    chart = el('div', {}, C.heatmap(grid, events), el('p', { class: 'hint', style: 'margin-top:10px' }, sentence(grid)));
-  }
+  const { grid, events } = foldHourly(series);
+  const chart = el('div', {}, C.heatmap(grid, events),
+    el('p', { class: 'hint', style: 'margin-top:10px' }, sentence(grid)));
   const table = C.bucketTable(series, t('when.hour'));
   const wrap = el('div', {});
   C.withTable(wrap, chart, table, 'review-when');
@@ -671,40 +699,39 @@ function whenCard(result, ctx) {
 
 /* -------------------------------------------------------- card 8: wall history */
 
-function wallHistoryCard(result, ctx) {
+// Issue #101: this card used to lead with a utilization-over-time line chart,
+// and that line said the same thing as the wall card's gauges one band up --
+// one is this instant, the other is this instant joined up. What no other card
+// on the page can answer is the table's question: how many times did this
+// subscription sit ON the limit, and for how long. So the chart is gone and
+// the table, which `withTable` kept hidden behind a ⊞ by default, is the card.
+//
+// The per-account `<p class=hint>` summary lines went with it. They named the
+// same four values as the table's four columns, which was defensible while the
+// table was the hidden half and the chart was what you saw -- and is just the
+// page printing a number twice (issue #93) now that the table is always up.
+function wallHistoryCard(result) {
   const card = el('div', { class: 'card', id: 'wall-history' }, el('h2', {}, t('wallHistory.title')),
     el('p', { class: 'hint' }, t('wallHistory.hint')));
   if (result.status === 'rejected') {
     card.appendChild(el('div', { class: 'empty' }, t('common.queryFailed', { error: errMsg(result.reason) })));
     return card;
   }
-  const { sel } = ctx;
   const data = result.value;
-  const accounts = [...(data.accounts || []), ...(data.quota_series || []).map((s) => ({ ...s,
-    points: s.points.map((p) => ({ t: p.t, five_hour_pct: p.utilization })) }))];
-  const totalPoints = accounts.reduce((a, x) => a + ((x.points || []).length), 0);
-  if (!totalPoints) {
+  const accounts = [...(data.accounts || []), ...(data.quota_series || [])];
+  if (!accounts.length) {
     // Not "snapshots exist from <date>": that hardcoded a date true only of
     // the author's hub, and every other hub would show it verbatim and
     // wrongly. No response field gives an actual earliest-snapshot date to
     // derive it from, so say plainly that this period has none.
+    //
+    // This used to count POINTS rather than rows, which is the same test by a
+    // longer route: the server only emits a series for an account it found at
+    // least one observation for. Counting rows keeps the guard honest now that
+    // the request asks for one point per series rather than 400.
     card.appendChild(el('div', { class: 'empty' }, t('wallHistory.empty')));
     return card;
   }
-
-  const lineAccounts = accounts.map((a) => ({
-    label: a.label,
-    points: (a.points || []).map((p) => ({ ts: Date.parse(p.t), five_hour_pct: p.five_hour_pct, seven_day_pct: p.seven_day_pct })),
-  }));
-  const chart = C.lines(lineAccounts, { start: sel.from, end: sel.to });
-
-  const notes = el('div', { style: 'margin-top:10px' }, accounts.map((a) => el('p', { class: 'hint' },
-    t(a.critical_episodes === 1 ? 'wallHistory.note.one' : 'wallHistory.note.other', {
-      label: a.label,
-      n: fmtFull(a.critical_episodes || 0),
-      time: fmtDur((a.critical_seconds || 0) * 1000),
-      prev: fmtDur((a.prev_critical_seconds || 0) * 1000),
-    }))));
 
   const table = el('div', { class: 'scroll' }, el('table', {},
     el('thead', {}, el('tr', {}, el('th', {}, t('wallHistory.col.subscription')), el('th', { class: 'num' }, t('wallHistory.col.episodes')),
@@ -714,10 +741,7 @@ function wallHistoryCard(result, ctx) {
       el('td', { class: 'num' }, fmtDur((a.critical_seconds || 0) * 1000)),
       el('td', { class: 'num' }, fmtDur((a.prev_critical_seconds || 0) * 1000)))))));
 
-  const wrap = el('div', {});
-  C.withTable(wrap, chart, table, 'review-wall-history');
-  card.appendChild(wrap);
-  card.appendChild(notes);
+  card.appendChild(table);
   return card;
 }
 
@@ -897,12 +921,19 @@ function applyAll(root, state, app, ctx, results) {
   //                        results are holes, and findingsCard reading one of
   //                        them is the TypeError that found this.
   //
-  // Position 2 stands for all four: READ_BY gives them one reader between them,
-  // so they are sent together or not at all. Reading the hole rather than a
+  // Position 2 stands for the TIER: READ_BY gives these four one reader between
+  // them, so the tier is asked for or it is not, and findings is the position
+  // that carries no second condition of its own. Reading the hole rather than a
   // flag is what makes this agree with the fetch plan by construction, incl. on
   // a replay -- and the mount check is what covers the other direction, where a
   // replay hands back a live-ops result set after the reader has switched to a
   // view that has no #ops-analysis to draw it into.
+  //
+  // Position 5 (the hourly history) is the one that can be a hole INSIDE a live
+  // tier: issue #102 also gates it on the selection being long enough for the
+  // when card to fold. So it must not be read here to mean "the tier is off",
+  // and whenCard answers from the selection before it touches the result at
+  // all. Position 2 is the tier question; 5 is a question about 5.
   //
   // There is no `|| root` fallback any more. It used to read
   // `querySelector('#ops-analysis') || root`, to keep working on "an embedded
@@ -915,7 +946,7 @@ function applyAll(root, state, app, ctx, results) {
   if (!opsRoot || findingsR.status === SKIPPED) return;
   section(opsRoot, 'r-findings').replaceChildren(findingsCard(findingsR, state, app));
   section(opsRoot, 'r-whenwall').replaceChildren(el('div', { class: 'grid2' },
-    whenCard(hourR, ctx), wallHistoryCard(wallR, ctx)));
+    whenCard(hourR, ctx), wallHistoryCard(wallR)));
   section(opsRoot, 'r-sessions').replaceChildren(sessionsCard(sessionsR, state, app, ctx.sel));
 }
 
@@ -977,7 +1008,12 @@ export const SUMMARY_INDEX = 1;
  *    4  usage by g2      -> usage:   r-breakdowns, r-efficiency
  *    5  history (hour)   -> ops:     r-whenwall's "when do we work" card, and
  *                                    nothing else -- position 0 is the separate
- *                                    extent-wide history the timeline draws
+ *                                    extent-wide history the timeline draws.
+ *                                    The one position with a SECOND condition
+ *                                    beside its band (issue #102): a selection
+ *                                    under WHEN_MIN_MS leaves it a hole even
+ *                                    on a live ops tier, because its only
+ *                                    reader draws nothing at that length
  *    6  limits history   -> ops:     r-whenwall's wall card
  *    7  sessions         -> ops:     r-sessions
  *
@@ -1034,8 +1070,26 @@ export function renderReview(root, state, app, shown) {
     // fallback, and the card preferred the line above it whenever breakdown 2
     // was grouped by model -- which is the default. So on every default first
     // screen this request was sent, answered, and thrown away.
-    get(`/v1/history?${q({ extra: { granularity: 'hour' } })}`),
-    get(`/v1/limits/history?${q({ extra: { points: 400 } })}`),
+    // Not sent at all under 48 hours (issue #102). This response has exactly
+    // one reader -- the when card's hour × weekday heatmap -- and that card
+    // now refuses a window too short to fold, so below the threshold this was
+    // a request whose answer had nowhere to go. WHEN_MIN_MS is the card's own
+    // constant rather than a second copy of the number, which is what makes
+    // "the card will draw it" and "we asked for it" the same condition.
+    sel.to - sel.from < WHEN_MIN_MS ? null : get(`/v1/history?${q({ extra: { granularity: 'hour' } })}`),
+    // points=1, not 400 (issue #101). 400 was the resolution a smooth line
+    // needed; the wall-history card is a table of counts and durations now and
+    // reads no point at all. It cannot be 0 -- the handler treats points<=0 as
+    // "unset" and defaults back to 400 -- so 1 is the floor, and the response
+    // still carries one row per series for the card's empty check.
+    //
+    // This costs the server nothing to compute and does not blunt the table:
+    // LimitsHistoryView and QuotaHistorySeries both run criticalTime() over
+    // the FULL scan and only then downsample to `points`, so the episode count
+    // and the critical seconds are byte-identical at 400 and at 1. What it
+    // saves is the payload -- 238KB -> 2KB over a 7-day window with three
+    // subscriptions, all of it points nothing now draws.
+    get(`/v1/limits/history?${q({ extra: { points: 1 } })}`),
     get(`/v1/sessions?${q({ extra: { sort: state.sort, limit: 50 } })}`),
   ].map((f, i) => (READ_BY[i].some((band) => shown.has(band)) ? f : null));
 

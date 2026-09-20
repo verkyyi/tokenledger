@@ -172,7 +172,6 @@ export const en = {
   // before deciding whether to open the table the ⊞ toggle swaps in.
   'chart.ariaTimeline': 'Tokens over time, stacked by model, {from} to {to}, peak {peak} tokens per bucket',
   'chart.ariaBrush': 'Time range selector. Arrow keys move the selection, Shift with arrow keys moves its right edge; the selected range is written below the chart.',
-  'chart.ariaWallHistory': 'Subscription utilization over time, {from} to {to}, {n} subscriptions, gridlines at 50% and 90%',
   'chart.ariaTurnBars': 'Tokens per turn, {turns} turns, peak {peak} tokens, coloured by model',
   'chart.ariaComposition': 'Token composition by type, largest part {name} at {pct}; every share is listed below the bar',
   'chart.ariaHeatmap': 'Tokens by weekday and hour, busiest {day} {hour} at {tokens} tokens',
@@ -470,13 +469,12 @@ export const en = {
   'when.title': 'When',
   'when.hint': 'Hour × weekday, in your local time zone, folded from the selected window.',
   'when.hour': 'Hour',
+  'when.tooShort': 'Under 48 hours there is not enough of each weekday-hour to fold. The timeline above already shows this window hour by hour.',
 
   /* -------------------------------------------------------- wall history */
   'wallHistory.title': 'Wall history',
-  'wallHistory.hint': 'Quota observations for the selected source and accounts. Each Codex window is separate; red marks ≥ 90%.',
+  'wallHistory.hint': 'How often each subscription sat ON its limit, and for how long. A critical episode is an unbroken stretch at ≥ 90% of the 5-hour window; each Codex window is counted separately.',
   'wallHistory.empty': 'No limit snapshots in this period.',
-  'wallHistory.note.one': '{label}: {n} critical episode · {time} in critical (prev {prev})',
-  'wallHistory.note.other': '{label}: {n} critical episodes · {time} in critical (prev {prev})',
   'wallHistory.col.subscription': 'Subscription',
   'wallHistory.col.episodes': 'Critical episodes',
   'wallHistory.col.time': 'Critical time',
@@ -608,6 +606,8 @@ export const en = {
   'repo.cost.unattributedWhy': 'Mostly {branch} \u2014 work whose branch never said what it was for.',
   'repo.cost.noScale': 'No close-time percentiles have been shipped, so nothing here is called stalled.',
   'repo.cost.unbound': 'Spend rows carry an issue number and no repository, so this hub cannot say which repository these numbers belong to.',
+  'repo.cost.undeclared': '{share} of this window ({tokens} tokens) named no repository and is not counted here.',
+  'repo.cost.soleRepo': 'No endpoint has declared which repository it runs in yet, so this is the whole hub\u2019s spend \u2014 readable as this repository\u2019s only because the hub holds no other.',
 
   // The other half of progress (#89/PR #35): the pre-release steps a release
   // batch is waiting on a person for. Grouped by owner, never by viewer --
