@@ -164,7 +164,6 @@ export const zhCN = {
   'chart.ariaModelMix': '模型构成随时间的变化，{from} 至 {to}，单桶峰值 {peak} token',
   'chart.ariaTimeline': 'token 用量随时间的变化（按模型堆叠），{from} 至 {to}，单桶峰值 {peak} token',
   'chart.ariaBrush': '时间范围选择器。方向键移动选区，Shift + 方向键移动右边界；当前选区以文字写在图表下方。',
-  'chart.ariaWallHistory': '订阅额度用量随时间的变化，{from} 至 {to}，共 {n} 个订阅，网格线位于 50% 与 90%',
   'chart.ariaTurnBars': '每轮次的 token 数，共 {turns} 轮，峰值 {peak} token，按模型着色',
   'chart.ariaComposition': '按类型划分的 token 构成，占比最大的是 {name}，为 {pct}；每一项的占比都列在条形下方',
   'chart.ariaHeatmap': '按星期与小时划分的 token 用量，最忙的是{day} {hour}，{tokens} token',
@@ -447,13 +446,12 @@ export const zhCN = {
   'when.title': '什么时候在跑',
   'when.hint': '小时 × 星期，按你本地时区，从选中窗口折叠而来。',
   'when.hour': '小时',
+  'when.tooShort': '不足 48 小时，每个「星期几 × 几点」还凑不出可折叠的第二次观测。这段时间按小时的样子，上面的时间线已经画了。',
 
   /* -------------------------------------------------------- wall history */
   'wallHistory.title': '额度历史',
-  'wallHistory.hint': '选中来源与账号的额度观测。Codex 的每个窗口各自独立；红色标记 ≥ 90%。',
+  'wallHistory.hint': '每个订阅坐在上限上多少次、每次多久。一次触顶 = 五小时窗口持续 ≥ 90% 的一段；Codex 的每个窗口分开计。',
   'wallHistory.empty': '这段时间没有额度快照。',
-  'wallHistory.note.one': '{label}：{n} 次触顶 · 处于临界 {time}（上期 {prev}）',
-  'wallHistory.note.other': '{label}：{n} 次触顶 · 处于临界 {time}（上期 {prev}）',
   'wallHistory.col.subscription': '订阅',
   'wallHistory.col.episodes': '触顶次数',
   'wallHistory.col.time': '临界时长',
@@ -584,6 +582,8 @@ export const zhCN = {
   'repo.cost.unattributedWhy': '\u5927\u5934\u662f {branch} \u2014\u2014 \u5206\u652f\u4ece\u672a\u8bf4\u8fc7\u5b83\u662f\u4e3a\u4ec0\u4e48\u5e72\u7684\u6d3b\u3002',
   'repo.cost.noScale': '\u6ca1\u6709\u9001\u8fc7\u5173\u95ed\u8017\u65f6\u767e\u5206\u4f4d\uff0c\u6240\u4ee5\u8fd9\u91cc\u4e0d\u628a\u4efb\u4f55\u4e00\u6761\u53eb\u505c\u6ede\u3002',
   'repo.cost.unbound': '\u6d88\u8d39\u884c\u53ea\u5e26 issue \u53f7\u3001\u4e0d\u5e26\u4ed3\u5e93\uff0c\u6240\u4ee5 hub \u8bf4\u4e0d\u51fa\u8fd9\u4e9b\u53f7\u5c5e\u4e8e\u54ea\u4e2a\u4ed3\u5e93\u3002',
+  'repo.cost.undeclared': '\u672c\u7a97\u53e3\u6709 {share}\uff08{tokens} tokens\uff09\u6ca1\u8bf4\u81ea\u5df1\u5728\u54ea\u4e2a\u4ed3\u5e93\uff0c\u6ca1\u7b97\u8fdb\u8fd9\u5f20\u5361\u3002',
+  'repo.cost.soleRepo': '\u8fd8\u6ca1\u6709\u7aef\u70b9\u58f0\u660e\u81ea\u5df1\u8dd1\u5728\u54ea\u4e2a\u4ed3\u5e93\uff0c\u6240\u4ee5\u8fd9\u662f\u6574\u53f0 hub \u7684\u6d88\u8d39 \u2014\u2014 \u80fd\u5f53\u6210\u8fd9\u4e2a\u4ed3\u5e93\u7684\uff0c\u53ea\u56e0\u4e3a hub \u91cc\u6ca1\u6709\u522b\u7684\u4ed3\u5e93\u3002',
 
   // 进展的另一半（#89/PR #35）：发布批次卡在人身上的那些发布前步骤。按 owner
   // 分组，从不按访客过滤 —— 为什么分不出访客，见 repo.human.everyone。
