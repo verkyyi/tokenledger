@@ -202,10 +202,17 @@ it carries a token.
 **Retiring one** (also on the hub, same database, same access assumption):
 
 ```bash
-ccquota endpoint list                  # what is enrolled
+ccquota endpoint list                  # every enrollment: agents AND shippers
 ccquota endpoint list --all            # retired ones too
 ccquota endpoint retire <endpoint_id>  # stop accepting its token, keep its history
 ```
+
+`endpoint list` is the operator's inventory, so unlike the dashboard's Endpoints
+roster it shows **every kind** — agents, repo shippers, growth tokens — with a
+`KIND` column. The roster filters to agents because a shipper is not a machine
+and would be reported as one that stopped reporting; but a shipper is one of the
+likelier things to need retiring, and one you cannot see is one whose id you
+cannot look up.
 
 `retire` is the one you want. It keeps the endpoint's row and every usage row
 pointing at it — **past totals do not move** — and its enrollment token stops

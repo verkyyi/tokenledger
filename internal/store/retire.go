@@ -52,6 +52,68 @@ var endpointRefTables = []string{
 // ErrNoSuchEndpoint is returned when an endpoint id names nothing.
 var ErrNoSuchEndpoint = errors.New("no such endpoint")
 
+// Enrollment is one row of the operator's inventory: every enrollment this hub
+// holds, of EVERY kind, retired or not.
+//
+// Deliberately not store.Endpoint. The fleet-facing list filters to
+// kind = 'agent', because a repo or growth shipper is not a machine and every
+// surface fed from there would report one as an agent that stopped reporting.
+// `ccquota endpoint` is the opposite question -- "what tokens exist, so I can
+// take one back" -- and a shipper is exactly the thing an operator most often
+// needs to retire: the incident in issue #42 was a `verify-health-shipper`. A
+// shipper missing from this list would be a token nobody can find the id of,
+// which is the hand-edit-the-database problem all over again.
+//
+// It carries Kind, which store.Endpoint deliberately does not (see
+// EndpointKind): that rule exists so an authorisation decision cannot be made
+// from a field riding along in a widely-shared struct. This type is read by
+// one command, is never handed to a gate, and an operator choosing what to
+// retire has to be told what each token IS.
+type Enrollment struct {
+	ID         string
+	Label      string
+	Kind       string
+	EnrolledAt time.Time
+	LastSeen   *time.Time
+	RetiredAt  *time.Time
+}
+
+// Retired reports whether this enrollment has been retired.
+func (e Enrollment) Retired() bool { return e.RetiredAt != nil }
+
+// ListEnrollments returns every enrollment, of every kind, newest first.
+// withRetired includes the retired ones.
+func (s *Store) ListEnrollments(withRetired bool) ([]Enrollment, error) {
+	q := `SELECT endpoint_id, label, hostname, kind, enrolled_at, last_seen, retired_at
+	      FROM endpoints`
+	if !withRetired {
+		q += ` WHERE retired_at IS NULL`
+	}
+	q += ` ORDER BY enrolled_at DESC`
+	rows, err := s.read.Query(q)
+	if err != nil {
+		return nil, fmt.Errorf("list enrollments: %w", err)
+	}
+	defer rows.Close()
+	var out []Enrollment
+	for rows.Next() {
+		var e Enrollment
+		var hostname, enrolled string
+		var lastSeen, retired sql.NullString
+		if err := rows.Scan(&e.ID, &e.Label, &hostname, &e.Kind, &enrolled, &lastSeen, &retired); err != nil {
+			return nil, fmt.Errorf("list enrollments: %w", err)
+		}
+		if e.Label == "" {
+			e.Label = hostname
+		}
+		e.EnrolledAt, _ = time.Parse(rfc, enrolled)
+		e.LastSeen = parseNullTime(lastSeen)
+		e.RetiredAt = parseNullTime(retired)
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
 // TableRows is one table's count of rows belonging to an endpoint.
 type TableRows struct {
 	Table string

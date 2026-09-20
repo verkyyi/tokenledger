@@ -125,12 +125,13 @@ Flags:
 	}
 }
 
+// endpointList is the operator's inventory, so it lists EVERY kind -- agents
+// and shippers alike. The fleet roster's kind = 'agent' filter is right for
+// the dashboard and wrong here: a repo or growth shipper is one of the likelier
+// things to need retiring (issue #42's own incident was a shipper), and one
+// missing from this list is a token whose id nobody can look up.
 func endpointList(st *store.Store, all bool) error {
-	list := st.ListEndpoints
-	if all {
-		list = st.ListEndpointsWithRetired
-	}
-	eps, err := list("")
+	eps, err := st.ListEnrollments(all)
 	if err != nil {
 		return err
 	}
@@ -143,21 +144,22 @@ func endpointList(st *store.Store, all bool) error {
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tSTATUS\tNAME\tLAST SEEN")
+	fmt.Fprintln(w, "ID\tSTATUS\tKIND\tNAME\tLAST SEEN")
 	for _, e := range eps {
 		status := "active"
-		if e.RetiredAt != nil {
+		if e.Retired() {
 			status = "retired " + e.RetiredAt.Local().Format("2006-01-02")
 		}
+		// A shipper never reports usage by design, so "never" against one is
+		// not the warning it is against an agent. Say so rather than letting
+		// the column imply a broken machine.
 		last := "never"
 		if e.LastSeen != nil {
 			last = e.LastSeen.Local().Format(time.RFC3339)
+		} else if e.Kind != "agent" {
+			last = "n/a"
 		}
-		name := e.Label
-		if name == "" {
-			name = e.Hostname
-		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", e.ID, status, name, last)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", e.ID, status, e.Kind, e.Label, last)
 	}
 	return w.Flush()
 }
@@ -189,7 +191,17 @@ func endpointRetire(st *store.Store, id string) error {
 		return err
 	}
 	if len(fp) == 0 {
-		fmt.Printf("\nIt never reported anything, so there is no history to keep. To remove\nthe row as well:\n\n  ccquota endpoint delete %s\n", id)
+		// "Nothing is keyed to it", not "it never reported": a repo or growth
+		// shipper may well have pushed plenty, but those rows are keyed by
+		// repository, never by endpoint (deliberately — one repo is worked by
+		// endpoints on several plans, so naming one would be a guess presented
+		// as a fact). Saying it never reported would be false for exactly the
+		// kind of enrollment most likely to be retired.
+		fmt.Printf("\nNothing in the ledger is keyed to it, so there is no history to keep.\n")
+		if kind, err := st.EndpointKind(id); err == nil && kind != "agent" {
+			fmt.Printf("(%s rows are keyed by repository, not by endpoint, so anything it\npushed is unaffected either way.)\n", kind)
+		}
+		fmt.Printf("\nTo remove the row as well:\n\n  ccquota endpoint delete %s\n", id)
 		return nil
 	}
 	fmt.Print("\nIts history is kept, so past totals are unchanged:\n\n")

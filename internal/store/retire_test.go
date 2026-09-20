@@ -151,6 +151,74 @@ func TestRetiredEndpoint_KeepsItsNameInHistory(t *testing.T) {
 	}
 }
 
+// TestListEnrollments_ShowsShippersToo is the gap that would have made this
+// feature miss its own motivating case: the fleet roster filters to
+// kind = 'agent', and a repo shipper retired through this CLI is exactly what
+// issue #42 was about. A shipper missing here is a token whose id an operator
+// cannot look up — back to editing the database by hand.
+func TestListEnrollments_ShowsShippersToo(t *testing.T) {
+	s := newStore(t)
+	if err := s.Enroll("ep-agent", "web-01", "hash-a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enroll("ep-ship", "verify-health-shipper", "hash-s"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.MarkRepoShipper("ep-ship"); err != nil {
+		t.Fatal(err)
+	}
+
+	// The fleet roster excludes it, correctly — it is not a machine.
+	roster, err := s.ListEndpoints("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids := endpointIDs(roster); len(ids) != 1 || ids[0] != "ep-agent" {
+		t.Fatalf("the fleet roster should hold only the agent, got %v", ids)
+	}
+
+	// The operator inventory must include it, or it cannot be retired.
+	inv, err := s.ListEnrollments(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byID := map[string]Enrollment{}
+	for _, e := range inv {
+		byID[e.ID] = e
+	}
+	if len(inv) != 2 {
+		t.Fatalf("`endpoint list` must show every kind, got %d: %+v", len(inv), inv)
+	}
+	if byID["ep-ship"].Kind != "repo_shipper" {
+		t.Fatalf("the inventory must say what each token is, got %q", byID["ep-ship"].Kind)
+	}
+	if byID["ep-ship"].Label != "verify-health-shipper" {
+		t.Fatalf("label = %q", byID["ep-ship"].Label)
+	}
+
+	// And retiring one works, and hides it from the default listing.
+	if changed, err := s.RetireEndpoint("ep-ship"); err != nil || !changed {
+		t.Fatalf("retire shipper: changed=%v err=%v", changed, err)
+	}
+	if _, err := s.EndpointByTokenHash("hash-s"); err == nil {
+		t.Fatal("a retired shipper's token must stop resolving")
+	}
+	active, err := s.ListEnrollments(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(active) != 1 || active[0].ID != "ep-agent" {
+		t.Fatalf("retired shipper still in the default listing: %+v", active)
+	}
+	all, err := s.ListEnrollments(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("--all must show the retired shipper, got %+v", all)
+	}
+}
+
 func TestDeleteEndpoint_RefusesOneThatHasReported(t *testing.T) {
 	s := newStore(t)
 	seedAccount(t, s, "acct-a", "ep-1")
