@@ -894,13 +894,21 @@ function applyNow(root, state, app, results, opsOpen) {
   if (pulseRoot && heroWrapEl.parentNode !== pulseRoot) pulseRoot.replaceChildren(heroWrapEl);
 
   // Everything above this line is drawn from the three requests that go out
-  // whatever the fold is doing. Everything below reads a result that was only
-  // ASKED FOR when the fold is open (see renderNow's NEEDED table) -- so with
-  // the tier closed we stop here rather than hand a card a SKIPPED slot and
-  // have it print "no readings" about a question nobody asked. Cards already in
-  // the DOM from a previous open stay as they are, invisible; the next open
-  // re-fetches and redraws them.
-  if (!opsOpen) return;
+  // whatever the fold is doing, and it draws into #alerts, #pulse and #banners
+  // -- which belong to no band and are therefore on EVERY view (index.html says
+  // why). Everything below reads a result that was only ASKED FOR when the
+  // operations tier is live (see renderNow's NEEDED table) -- so with the tier
+  // closed we stop here rather than hand a card a SKIPPED slot and have it
+  // print "no readings" about a question nobody asked. Cards already in the DOM
+  // from a previous open stay as they are, invisible; the next open re-fetches
+  // and redraws them.
+  //
+  // `root` is #status, and since #98 it is null whenever the operations band is
+  // not mounted at all. Checked as well as `opsOpen` rather than instead of it:
+  // the two cannot currently disagree (app.js derives both from one `shown` set
+  // computed after the mount), and this is the line that keeps a later edit
+  // from making them disagree silently.
+  if (!opsOpen || !root) return;
 
   root.replaceChildren(...[
     wallCardFromResult(limitsR, state.chips, app.accounts),
@@ -985,11 +993,13 @@ export function renderNow(root, state, app, opsOpen) {
  *
  *  That last sentence became load-bearing at #96, which moved #pulse into the
  *  sticky top bar: a badge arriving a round trip late is a badge arriving after
- *  the scroll spy has measured the bar it now lives in. Both ends of that are
- *  handled where they belong -- the badge is sized not to change the bar's
- *  height (styles.css's `.scope #pulse`), and scope.js observes the bar so a
- *  height change that slips through re-publishes --navh. Deferring the stream
- *  stays the right call; it is just no longer free of consequences elsewhere. */
+ *  the page has been laid out against the bar it now lives in, and that bar's
+ *  height is --navh (scope.js's navHeight), the offset everything the page
+ *  scrolls to lands against. Handled where it belongs rather than here: the
+ *  badge is sized not to change the bar's height at all (styles.css's
+ *  `.scope #pulse`), with #98's ResizeObserver on the bar as the net. Deferring
+ *  the stream stays the right call; it is just no longer free of consequences
+ *  elsewhere. */
 export function startLive(app) {
   if (!liveState.pending) return;
   liveState.pending = false;

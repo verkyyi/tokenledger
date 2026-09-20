@@ -17,6 +17,10 @@ export const en = {
   'app.language': 'Language',
   'app.unreachable': 'Cannot reach the hub: {error}',
   'nav.sections': 'Sections',
+  // The bar's first entry: the whole page, every band, which is the default
+  // view and the way back from any single one (#98). Not a band, so it has no
+  // `band.` key and index.html has no label printing it.
+  'nav.all': 'All',
   'band.ledger': 'Ledger',
   'band.ledger.note': 'what was paid, and to whom',
   'band.usage': 'Usage',
@@ -424,6 +428,8 @@ export const en = {
   'breakdown.title': 'By {dim}',
   'breakdown.hint': 'Top 50 rows, compared with the period before. Shares follow the current selection.',
   'breakdown.groupBy': 'group by (breakdown {n})',
+  'breakdown.openUser': "Open {user}'s own page",
+  'breakdown.subscriptionNote': 'Everything on this card ran on a subscription ({sources}) — the same sentence on every row, so it is said once here. Billed money still prints per row.',
   'breakdown.scaleNote': 'Both breakdown cards share one scale: a full bar is {max} tokens. The thin rule marks the previous period.',
   'breakdown.prevTokens': 'Prev tokens',
   'breakdown.prevSource': 'Prev {source} $',
