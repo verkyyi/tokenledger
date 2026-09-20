@@ -20,6 +20,10 @@ export const zhCN = {
   'app.language': '语言',
   'app.unreachable': '连不上 hub：{error}',
   'nav.sections': '页面分段',
+  // 「概览」是页面的落点（#130）：额度 + 账本；「全部」是五个 band 的整页 ——
+  // #130 之前它就是缺省，现在它是一个要主动去的地方。两个词不能读成同义词，
+  // 因为它们已经不是同一页了。
+  'nav.overview': '概览',
   'nav.all': '全部',
   'band.quota': '额度',
   'band.quota.note': '还剩多少余量',
@@ -302,7 +306,7 @@ export const zhCN = {
   'banner.backTo': '（最早到 {date}）',
   'banner.droppedBeyondBackfill': '有 {n} 个轮次超出了 {window} 的回填窗口',
   'banner.limitsUnavailable.title': '拿不到账号级额度。',
-  'banner.limitsUnavailable.body': '{reason} 下面的用量总数依然准确，只是缺了额度仪表盘。',
+  'banner.limitsUnavailable.body': '{reason}下面的用量总数依然准确，只是缺了额度仪表盘。',
   'banner.limitsStale.title': '额度读数已过期。',
   'banner.limitsStale.body': '最后一次读取是 {ago}。可能有 agent 停止轮询了。',
 
