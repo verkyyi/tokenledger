@@ -1,7 +1,9 @@
 package store
 
 import (
+	"database/sql"
 	"errors"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -290,6 +292,74 @@ func TestDeleteEndpoint_RefusesOnLastSeenAlone(t *testing.T) {
 	}
 	if err := s.DeleteEndpoint("ep-1"); err == nil {
 		t.Fatal("an endpoint that has reported must not be deletable")
+	}
+}
+
+// TestMigrate_AddsRetiredAtToAnOlderDatabase covers the upgrade path, which is
+// the only path most hubs will actually take.
+//
+// schema.sql is all CREATE TABLE IF NOT EXISTS, so on an existing database it
+// does nothing at all — a new column only arrives through migrate(). Get that
+// wrong and an upgraded hub does not fail loudly at startup; it fails on every
+// query that mentions the column, which is every endpoint read there is.
+//
+// The fixture pre-creates `endpoints` WITHOUT retired_at, exactly as a hub
+// running the previous release has it, then opens the store normally.
+func TestMigrate_AddsRetiredAtToAnOlderDatabase(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+
+	old, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The pre-#42 shape: every column the previous release had, and no more.
+	if _, err := old.Exec(`CREATE TABLE endpoints (
+		endpoint_id TEXT PRIMARY KEY, account_uuid TEXT, hostname TEXT NOT NULL DEFAULT '',
+		os TEXT NOT NULL DEFAULT '', arch TEXT NOT NULL DEFAULT '',
+		machine_id TEXT NOT NULL DEFAULT '', cc_version TEXT NOT NULL DEFAULT '',
+		agent_version TEXT NOT NULL DEFAULT '', token_hash TEXT NOT NULL,
+		label TEXT NOT NULL DEFAULT '', os_user TEXT NOT NULL DEFAULT '',
+		kind TEXT NOT NULL DEFAULT 'agent', team TEXT NOT NULL DEFAULT '',
+		enrolled_at TEXT NOT NULL, last_seen TEXT,
+		limits_unavailable TEXT NOT NULL DEFAULT '', limits_checked_at TEXT,
+		dropped_pre_account INTEGER NOT NULL DEFAULT 0, earliest_dropped TEXT,
+		dropped_beyond_backfill INTEGER NOT NULL DEFAULT 0,
+		backfill_limit TEXT NOT NULL DEFAULT '')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.Exec(
+		`INSERT INTO endpoints (endpoint_id, token_hash, label, enrolled_at)
+		 VALUES ('ep-old', 'hash-old', 'web-01', '2026-01-01T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := old.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := Open(path)
+	if err != nil {
+		t.Fatalf("opening a pre-#42 database must migrate it, not fail: %v", err)
+	}
+	defer s.Close()
+
+	// The endpoint that predates the column reads as active, which is the only
+	// correct answer for a row written before retiring existed.
+	eps, err := s.ListEndpoints("")
+	if err != nil {
+		t.Fatalf("reading endpoints after migration: %v", err)
+	}
+	if len(eps) != 1 || eps[0].ID != "ep-old" || eps[0].RetiredAt != nil {
+		t.Fatalf("migrated endpoint should be active, got %+v", eps)
+	}
+	if _, err := s.EndpointByTokenHash("hash-old"); err != nil {
+		t.Fatalf("an existing token must keep working across the upgrade: %v", err)
+	}
+	// ...and the new verb works on it.
+	if changed, err := s.RetireEndpoint("ep-old"); err != nil || !changed {
+		t.Fatalf("retire on a migrated row: changed=%v err=%v", changed, err)
+	}
+	if _, err := s.EndpointByTokenHash("hash-old"); err == nil {
+		t.Fatal("the migrated endpoint's token must stop resolving once retired")
 	}
 }
 
