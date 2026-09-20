@@ -292,3 +292,25 @@ func TestRepoIssues_FilterByNumbers(t *testing.T) {
 		t.Errorf("got #%d, #%d; want #57, #59 oldest first", rows[0].Number, rows[1].Number)
 	}
 }
+
+// The IN list is built from the caller's set, and the backlog read that feeds
+// it accepts limit=1000. Pinning a set well past that is what stops a driver
+// with a lower bind-parameter cap from turning a large repository's stalled
+// list into a 500 nobody reproduces on a small one.
+func TestIssueLifetimeSpend_HandlesALargeNumberSet(t *testing.T) {
+	s := newStore(t)
+	seedAccount(t, s, "acc", "ep")
+	seedIssueSpend(t, s, evSpend("acc", "ep", "u1", "issue-57", "claude", 10))
+
+	nums := make([]int64, 0, 5000)
+	for i := 1; i <= 5000; i++ {
+		nums = append(nums, int64(i))
+	}
+	got, err := s.IssueLifetimeSpend(AllAccounts, nums)
+	if err != nil {
+		t.Fatalf("5000 issue numbers: %v", err)
+	}
+	if got[57].Tokens == 0 {
+		t.Error("issue 57 lost its spend in a large set")
+	}
+}
