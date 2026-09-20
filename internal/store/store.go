@@ -408,8 +408,14 @@ func (s *Store) EndpointKind(endpointID string) (string, error) {
 // endpoint — no caller can decide anything about one endpoint from it — so the
 // page can say "three agents, one growth shipper" without handing anyone a
 // kind to mistake for a credential.
+// Retired enrollments are NOT counted. The sentence above is the reason: this
+// page says how open each ingest door is, and a retired token cannot push
+// through one -- EndpointByTokenHash refuses it. Counting it would make the
+// door map overstate the hub's exposure, which is the one thing a page whose
+// whole job is "what is actually open here" must not do.
 func (s *Store) EnrollmentCounts() (map[string]int, error) {
-	rows, err := s.read.Query(`SELECT kind, COUNT(*) FROM endpoints GROUP BY kind`)
+	rows, err := s.read.Query(
+		`SELECT kind, COUNT(*) FROM endpoints WHERE retired_at IS NULL GROUP BY kind`)
 	if err != nil {
 		return nil, fmt.Errorf("enrollment counts: %w", err)
 	}

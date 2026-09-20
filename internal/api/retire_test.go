@@ -72,6 +72,35 @@ func TestEndpoints_HidesRetiredUnlessIncluded(t *testing.T) {
 	}
 }
 
+// TestRetiredEndpoint_DropsOutOfTheAccessDoorCount pins the /access page's
+// claim. That page states how open each door is; a retired token cannot push
+// through any of them, so counting it would overstate the hub's exposure.
+func TestRetiredEndpoint_DropsOutOfTheAccessDoorCount(t *testing.T) {
+	h := newHarness(t)
+	h.enroll(t, "web-01")
+	h.enroll(t, "web-02")
+
+	before, err := h.srv.Store.EnrollmentCounts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before["agent"] != 2 {
+		t.Fatalf("want 2 agents before retiring, got %v", before)
+	}
+
+	if _, err := h.srv.Store.RetireEndpoint("ep_web-02"); err != nil {
+		t.Fatal(err)
+	}
+	after, err := h.srv.Store.EnrollmentCounts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after["agent"] != 1 {
+		t.Fatalf("a retired token can no longer push, so the door map must not "+
+			"count it: got %v", after)
+	}
+}
+
 // A typo in `include` is rejected rather than ignored: silently returning the
 // active-only list would read as "there are no retired endpoints".
 func TestEndpoints_RejectsUnknownInclude(t *testing.T) {
