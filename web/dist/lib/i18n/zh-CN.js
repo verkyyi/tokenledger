@@ -47,6 +47,7 @@ export const zhCN = {
   'scope.source': '用量来源',
   'scope.span': '时间跨度',
   'scope.allAccounts': '全部 {n} 个账号 / 用量池',
+  'scope.allQuotaAccounts': '全部 {n} 个账号',
   'scope.allSources': '全部来源',
   'scope.removeChip': '移除 {dim}',
   'scope.clearAll': '全部清除',
@@ -123,6 +124,8 @@ export const zhCN = {
   'billing.notional': '订阅',
   'billing.unknown': '未分类',
   'rows.notDeclared': '未声明',
+  // 只在这一行的用量全部来自 claude 时出现 —— 那时「空」只可能有一个原因。
+  'rows.notDeclaredClaude': 'Claude（该来源不声明上游）',
   'rows.foldedTail': '其余 {n} 个上游 · 各 ≤{max} 次请求，且无费用',
 
   /* ------------------------------------------------------- time formatting */
