@@ -1,3 +1,9 @@
+> **已并入 [verkyyi/claude-fleet/tokenledger](https://github.com/verkyyi/claude-fleet/tree/master/tokenledger)**（带完整历史，claude-fleet#1391）。
+> 本仓库不再开发；issue 已迁往 claude-fleet（`tokenledger` 标签）。新安装路径：
+> `go install github.com/verkyyi/claude-fleet/tokenledger/cmd/ccquota@latest`
+>
+> **Merged into [verkyyi/claude-fleet/tokenledger](https://github.com/verkyyi/claude-fleet/tree/master/tokenledger)** with full history. This repo is no longer developed.
+
 # TokenLedger
 
 <picture>
